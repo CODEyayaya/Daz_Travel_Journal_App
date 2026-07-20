@@ -27,16 +27,16 @@ body {
 .globe-screen {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   position: relative;
+  padding-top: 30px;
+  overflow: hidden;
 }
 
 #globe-container {
-  width: 340px;
-  height: 340px;
-  border-radius: 50%;
-  border: 2px solid #2e2a26;
+  width: 490px;
+  height: 490px;
 }
 
 .zoom-controls {
