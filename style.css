@@ -137,3 +137,17 @@ body {
   opacity: 1;
   pointer-events: auto;
 }
+
+.view {
+  display: none;
+  padding: 24px;
+}
+
+.view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+#view-home.active {
+  height: 100%;
+}

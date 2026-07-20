@@ -25,3 +25,24 @@ overlay.addEventListener('click', () => {
   sideMenu.classList.remove('open');
   overlay.classList.remove('active');
 });
+
+const navItems = {
+  'nav-home': 'view-home',
+  'nav-visited': 'view-visited',
+  'nav-tovisit': 'view-tovisit',
+  'nav-entries': 'view-entries',
+  'nav-people': 'view-people',
+};
+
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+}
+
+Object.keys(navItems).forEach(navId => {
+  document.getElementById(navId).addEventListener('click', () => {
+    showView(navItems[navId]);
+    sideMenu.classList.remove('open');
+    overlay.classList.remove('active');
+  });
+});
