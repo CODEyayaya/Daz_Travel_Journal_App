@@ -58,7 +58,27 @@
     <h2>People</h2>
   </section>
 
-  <script src="//unpkg.com/globe.gl"></script>
-  <script src="app.js"></script>
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_WkzK_YNf8rBbU8vgWu0nUafh44yVRUg",
+      authDomain: "journal-de-dazz.firebaseapp.com",
+      projectId: "journal-de-dazz",
+      storageBucket: "journal-de-dazz.firebasestorage.app",
+      messagingSenderId: "476155475149",
+      appId: "1:476155475149:web:1f677fbca643ed5c1be584"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.db = db;
+    window.firestoreFns = { collection, addDoc, getDocs };
+  </script>
+  <script src="//unpkg.com/globe.gl" defer></script>
+  <script src="app.js" defer></script>
+
 </body>
 </html>

@@ -46,3 +46,15 @@ Object.keys(navItems).forEach(navId => {
     overlay.classList.remove('active');
   });
 });
+
+const { collection, addDoc, getDocs } = window.firestoreFns;
+const db = window.db;
+
+async function addEntry(entry) {
+  await addDoc(collection(db, "entries"), entry);
+}
+
+async function getEntries() {
+  const snapshot = await getDocs(collection(db, "entries"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
