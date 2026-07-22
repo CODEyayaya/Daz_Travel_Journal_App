@@ -58,7 +58,16 @@
     <h2>People</h2>
   </section>
 
-    <script type="module">
+  <div class="pin-popup-overlay" id="pin-popup-overlay">
+    <div class="pin-popup">
+      <h3 id="pin-popup-country">Country</h3>
+      <button id="popup-view-memories">View Memories</button>
+      <button id="popup-add-memory">Add Memory</button>
+      <button id="popup-close" class="popup-close-btn">✕</button>
+    </div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
@@ -77,6 +86,8 @@
     window.db = db;
     window.firestoreFns = { collection, addDoc, getDocs };
   </script>
+
+  <script src="//unpkg.com/d3-geo@3"></script>
   <script src="//unpkg.com/globe.gl" defer></script>
   <script src="app.js" defer></script>
 

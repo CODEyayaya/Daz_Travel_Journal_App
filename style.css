@@ -151,3 +151,57 @@ body {
 #view-home.active {
   height: 100%;
 }
+
+.pin-popup-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-popup-overlay.active {
+  display: flex;
+}
+
+.pin-popup {
+  background: #f4efe6;
+  border-radius: 16px;
+  padding: 24px;
+  width: 260px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pin-popup h3 {
+  margin-bottom: 8px;
+}
+
+.pin-popup button {
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background-color: #2e2a26;
+  color: #f4efe6;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.popup-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none !important;
+  color: #2e2a26 !important;
+  font-size: 16px;
+}
