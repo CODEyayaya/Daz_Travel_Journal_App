@@ -38,6 +38,15 @@
       </div>
       <div class="below-globe">
         <button id="memory-spin-btn">Memory Spin</button>
+
+        <div class="pin-popup" id="pin-popup">
+          <h3 id="pin-popup-country">Country</h3>
+          <div class="pin-popup-buttons">
+            <button id="popup-view-memories">View Memories</button>
+            <button id="popup-add-memory">Add Memory</button>
+          </div>
+          <button id="popup-close" class="popup-close-btn">✕</button>
+        </div>
       </div>
     </main>
   </section>
@@ -57,15 +66,6 @@
   <section id="view-people" class="view">
     <h2>People</h2>
   </section>
-
-  <div class="pin-popup-overlay" id="pin-popup-overlay">
-    <div class="pin-popup">
-      <h3 id="pin-popup-country">Country</h3>
-      <button id="popup-view-memories">View Memories</button>
-      <button id="popup-add-memory">Add Memory</button>
-      <button id="popup-close" class="popup-close-btn">✕</button>
-    </div>
-  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
@@ -87,7 +87,6 @@
     window.firestoreFns = { collection, addDoc, getDocs };
   </script>
 
-  <script src="//unpkg.com/d3-geo@3"></script>
   <script src="//unpkg.com/globe.gl" defer></script>
   <script src="app.js" defer></script>
 

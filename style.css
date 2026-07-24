@@ -72,6 +72,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 #memory-spin-btn {
@@ -152,56 +153,57 @@ body {
   height: 100%;
 }
 
-.pin-popup-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.4);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
-}
-
-.pin-popup-overlay.active {
-  display: flex;
-}
+/* pin popup — sits inline in .below-globe, swaps with the Memory Spin button */
 
 .pin-popup {
-  background: #f4efe6;
-  border-radius: 16px;
-  padding: 24px;
-  width: 260px;
+  display: none;
   position: relative;
-  display: flex;
+  background-color: #f4efe6;
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  width: 240px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   flex-direction: column;
   gap: 12px;
+  text-align: center;
+}
+
+.pin-popup.active {
+  display: flex;
 }
 
 .pin-popup h3 {
-  margin-bottom: 8px;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.pin-popup-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .pin-popup button {
-  padding: 12px;
-  border-radius: 12px;
+  padding: 10px 16px;
+  border-radius: 20px;
   border: none;
-  background-color: #2e2a26;
-  color: #f4efe6;
   font-size: 15px;
   cursor: pointer;
 }
 
+#popup-view-memories,
+#popup-add-memory {
+  background-color: #2e2a26;
+  color: #f4efe6;
+}
+
 .popup-close-btn {
   position: absolute;
-  top: 12px;
+  top: 10px;
   right: 12px;
-  width: 28px;
-  height: 28px;
-  padding: 0;
   background: none !important;
-  color: #2e2a26 !important;
+  color: #2e2a26;
   font-size: 16px;
+  padding: 4px !important;
+  width: auto;
 }
