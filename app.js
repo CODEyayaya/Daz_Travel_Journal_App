@@ -42,6 +42,7 @@ function showView(viewId) {
 Object.keys(navItems).forEach(navId => {
   document.getElementById(navId).addEventListener('click', () => {
     showView(navItems[navId]);
+    if (navId === 'nav-visited') renderVisitedList();
     sideMenu.classList.remove('open');
     overlay.classList.remove('active');
   });
@@ -49,11 +50,6 @@ Object.keys(navItems).forEach(navId => {
 
 const { collection, addDoc, getDocs, doc, setDoc, updateDoc, serverTimestamp } = window.firestoreFns;
 const db = window.db;
-
-const countryCoords = {
-  "Nepal": { lat: 28.3949, lng: 84.1240 },
-  "India": { lat: 20.5937, lng: 78.9629 },
-};
 
 // crude centroid: average of the outer-ring coordinates.
 // for MultiPolygon countries, use the ring with the most points (main landmass)
@@ -75,32 +71,7 @@ function computeCentroid(feature) {
   return { lat: latSum / ring.length, lng: lngSum / ring.length };
 }
 
-async function addMemory(country, city, notes, people) {
-  const coords = countryCoords[country];
-  if (!coords) {
-    console.error("Unknown country — add it to countryCoords first:", country);
-    return;
-  }
-
-  const memory = {
-    country,
-    countryLat: coords.lat,
-    countryLng: coords.lng,
-    city,
-    notes,
-    people: people || [],
-    date: new Date().toISOString().split('T')[0]
-  };
-
-  await addDoc(collection(db, "entries"), memory);
-}
-
-async function getEntries() {
-  const snapshot = await getDocs(collection(db, "entries"));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-// --- custom, readable document IDs instead of Firestore's random ones ---
+// --- custom, readable document IDs ---
 function slugify(str) {
   return (str || 'unknown')
     .toLowerCase()
@@ -126,20 +97,14 @@ function generateEntryId(prefix, country) {
 async function saveJournalEntry({ id, country, title, date, content }) {
   if (id) {
     await updateDoc(doc(db, "journalEntries", id), {
-      title,
-      date,
-      content,
-      country,
+      title, date, content, country,
       updatedAt: serverTimestamp()
     });
     return id;
   } else {
     const newId = generateEntryId('j', country);
     await setDoc(doc(db, "journalEntries", newId), {
-      title,
-      date,
-      content,
-      country,
+      title, date, content, country,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -151,26 +116,14 @@ async function saveJournalEntry({ id, country, title, date, content }) {
 async function savePersonEntry({ id, country, name, from, metWhere, instagram, whatsapp, note }) {
   if (id) {
     await updateDoc(doc(db, "people", id), {
-      name,
-      from,
-      metWhere,
-      instagram,
-      whatsapp,
-      note,
-      country,
+      name, from, metWhere, instagram, whatsapp, note, country,
       updatedAt: serverTimestamp()
     });
     return id;
   } else {
     const newId = generateEntryId('p', country);
     await setDoc(doc(db, "people", newId), {
-      name,
-      from,
-      metWhere,
-      instagram,
-      whatsapp,
-      note,
-      country,
+      name, from, metWhere, instagram, whatsapp, note, country,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -182,16 +135,14 @@ async function savePersonEntry({ id, country, name, from, metWhere, instagram, w
 async function saveNoteEntry({ id, country, content }) {
   if (id) {
     await updateDoc(doc(db, "notes", id), {
-      content,
-      country,
+      content, country,
       updatedAt: serverTimestamp()
     });
     return id;
   } else {
     const newId = generateEntryId('n', country);
     await setDoc(doc(db, "notes", newId), {
-      content,
-      country,
+      content, country,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -199,7 +150,42 @@ async function saveNoteEntry({ id, country, content }) {
   }
 }
 
+// --- visited countries: manual only, via "Plant Pin". Doc IDs prefixed "visited-" ---
+let countryCentroids = {};
 let visitedCountries = new Set();
+let visitedPinsData = []; // [{ country, lat, lng }]
+
+async function fetchCollectionDocs(name) {
+  const snapshot = await getDocs(collection(db, name));
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function plantPin(country) {
+  const coords = countryCentroids[country] || { lat: 0, lng: 0 };
+  const id = `visited-${slugify(country)}`; // e.g. visited-nepal — one doc per country, re-planting just overwrites
+  await setDoc(doc(db, "visitedCountries", id), {
+    country,
+    lat: coords.lat,
+    lng: coords.lng,
+    createdAt: serverTimestamp()
+  });
+}
+
+async function computeVisitedData() {
+  const docs = await fetchCollectionDocs('visitedCountries');
+  return {
+    visited: new Set(docs.map(d => d.country)),
+    pins: docs.map(d => ({ country: d.country, lat: d.lat, lng: d.lng }))
+  };
+}
+
+async function refreshVisitedData() {
+  const data = await computeVisitedData();
+  visitedCountries = data.visited;
+  visitedPinsData = data.pins;
+  globe.htmlElementsData(visitedPinsData);
+  renderVisitedList();
+}
 
 // small red pin icon — tip points down at the actual coordinate
 const pinSvg = `
@@ -226,14 +212,14 @@ async function loadCountries() {
   const geoRes = await fetch('https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson');
   const geoData = await geoRes.json();
 
-  const entries = await getEntries();
-  visitedCountries = new Set(entries.map(e => e.country));
-
-  // one pin per visited country, using the lat/lng stored on its first entry
-  const pinsData = [...visitedCountries].map(country => {
-    const entry = entries.find(e => e.country === country);
-    return { country, lat: entry.countryLat, lng: entry.countryLng };
+  // precompute a centroid for every country — used for labels + as the pin location when planting
+  geoData.features.forEach(f => {
+    countryCentroids[f.properties.ADMIN] = computeCentroid(f);
   });
+
+  const data = await computeVisitedData();
+  visitedCountries = data.visited;
+  visitedPinsData = data.pins;
 
   // filter out tiny territories/islands so the globe isn't cluttered with labels
   const labelFeatures = geoData.features.filter(d => d.properties.POP_EST > 100000);
@@ -251,16 +237,16 @@ async function loadCountries() {
 
     // --- country name labels (always-on, not hover-based) ---
     .labelsData(labelFeatures)
-    .labelLat(d => computeCentroid(d).lat)
-    .labelLng(d => computeCentroid(d).lng)
+    .labelLat(d => countryCentroids[d.properties.ADMIN].lat)
+    .labelLng(d => countryCentroids[d.properties.ADMIN].lng)
     .labelText(d => d.properties.ADMIN)
     .labelSize(d => Math.max(1, Math.sqrt(d.properties.POP_EST) * 4e-5))
     .labelDotRadius(0)
     .labelColor(() => '#2e2a26')
     .labelResolution(2)
     .labelAltitude(0.011)
-    // --- red pins for visited countries ---
-    .htmlElementsData(pinsData)
+    // --- red pins for manually-visited countries ---
+    .htmlElementsData(visitedPinsData)
     .htmlLat('lat')
     .htmlLng('lng')
     .htmlAltitude(0.02)
@@ -272,6 +258,7 @@ loadCountries();
 const pinPopup = document.getElementById('pin-popup');
 const pinPopupCountry = document.getElementById('pin-popup-country');
 const popupClose = document.getElementById('popup-close');
+const popupPlantPin = document.getElementById('popup-plant-pin');
 const popupViewMemories = document.getElementById('popup-view-memories');
 const popupAddMemory = document.getElementById('popup-add-memory');
 const memorySpinBtn = document.getElementById('memory-spin-btn');
@@ -306,17 +293,38 @@ const noteSaveBtn = document.getElementById('note-save-btn');
 const noteLocationTag = document.getElementById('note-editor-location');
 const noteBodyInput = document.getElementById('note-body-input');
 
+const visitedListEl = document.getElementById('visited-list');
+
+function renderVisitedList() {
+  const countries = [...visitedCountries].sort(); // alphabetical
+
+  if (countries.length === 0) {
+    visitedListEl.innerHTML = '<p class="visited-empty">No countries visited yet — tap a country on the globe and plant a pin to get started.</p>';
+    return;
+  }
+
+  visitedListEl.innerHTML = countries.map(country => `
+    <div class="visited-item">
+      <span class="visited-item-name">${country}</span>
+    </div>
+  `).join('');
+}
+
 let activeCountry = null;
-let activeJournalEntryId = null; // null = creating a new entry
-let activePersonEntryId = null;  // null = creating a new person
-let activeNoteEntryId = null;    // null = creating a new note
+let activeJournalEntryId = null;
+let activePersonEntryId = null;
+let activeNoteEntryId = null;
 
 function openPinPopup(country) {
   activeCountry = country;
   pinPopupCountry.textContent = country;
 
   const isVisited = visitedCountries.has(country);
+  popupPlantPin.style.display = isVisited ? 'none' : 'inline-block';
+  popupPlantPin.disabled = false;              // always reset, even if a previous plant errored
+  popupPlantPin.textContent = '📍 Plant Pin';
   popupViewMemories.style.display = isVisited ? 'inline-block' : 'none';
+  popupAddMemory.style.display = isVisited ? 'inline-block' : 'none';
 
   memorySpinBtn.style.display = 'none';
   memoryOptions.classList.remove('active');
@@ -365,7 +373,7 @@ function openJournalEditor(country, existingEntry = null) {
 
 function closeJournalEditor() {
   journalEditor.classList.remove('active');
-  memoryOptions.classList.add('active'); // back to the +Journal/+People/+Note/+Photos list
+  memoryOptions.classList.add('active');
 }
 
 function openPeopleEditor(country, existingPerson = null) {
@@ -384,7 +392,7 @@ function openPeopleEditor(country, existingPerson = null) {
     activePersonEntryId = null;
     peopleNameInput.value = '';
     peopleFromInput.value = '';
-    peopleMetWhereInput.value = country; // pre-fill with the country you tapped
+    peopleMetWhereInput.value = country;
     peopleInstaInput.value = '';
     peopleWhatsappInput.value = '';
     peopleNoteInput.value = '';
@@ -397,7 +405,7 @@ function openPeopleEditor(country, existingPerson = null) {
 
 function closePeopleEditor() {
   peopleEditor.classList.remove('active');
-  memoryOptions.classList.add('active'); // back to the options list
+  memoryOptions.classList.add('active');
 }
 
 function openNoteEditor(country, existingNote = null) {
@@ -419,10 +427,27 @@ function openNoteEditor(country, existingNote = null) {
 
 function closeNoteEditor() {
   noteEditor.classList.remove('active');
-  memoryOptions.classList.add('active'); // back to the options list
+  memoryOptions.classList.add('active');
 }
 
 popupClose.addEventListener('click', closePinPopup);
+
+popupPlantPin.addEventListener('click', async () => {
+  popupPlantPin.disabled = true;
+  popupPlantPin.textContent = 'Planting...';
+
+  try {
+    await plantPin(activeCountry);
+    await refreshVisitedData();
+    openMemoryOptions(activeCountry); // straight into adding a memory after planting
+  } catch (err) {
+    console.error('Failed to plant pin:', err);
+    alert('Something went wrong planting the pin — try again.');
+  } finally {
+    popupPlantPin.disabled = false;
+    popupPlantPin.textContent = '📍 Plant Pin';
+  }
+});
 
 popupViewMemories.addEventListener('click', () => {
   console.log('view memories for', activeCountry);
@@ -446,7 +471,6 @@ memoryOptionBtns.forEach(btn => {
       openNoteEditor(activeCountry);
     } else {
       console.log(`add ${type} for`, activeCountry);
-      // Photos gets built next
     }
   });
 });
@@ -469,9 +493,7 @@ journalSaveBtn.addEventListener('click', async () => {
   activeJournalEntryId = await saveJournalEntry({
     id: activeJournalEntryId,
     country: activeCountry,
-    title,
-    date,
-    content
+    title, date, content
   });
 
   journalSaveBtn.disabled = false;
@@ -500,12 +522,7 @@ peopleSaveBtn.addEventListener('click', async () => {
   activePersonEntryId = await savePersonEntry({
     id: activePersonEntryId,
     country: activeCountry,
-    name,
-    from,
-    metWhere,
-    instagram,
-    whatsapp,
-    note
+    name, from, metWhere, instagram, whatsapp, note
   });
 
   peopleSaveBtn.disabled = false;
