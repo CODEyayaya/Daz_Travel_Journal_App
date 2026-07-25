@@ -47,7 +47,7 @@
           </div>
           <button id="popup-close" class="popup-close-btn">✕</button>
         </div>
-        
+
 
         <div class="memory-options" id="memory-options">
             <h3 id="memory-options-country">Country</h3>
@@ -59,7 +59,7 @@
             </div>
             <button id="memory-options-close" class="popup-close-btn">✕</button>
         </div>
-        
+
       </div>
     </main>
   </section>
@@ -80,9 +80,55 @@
     <h2>People</h2>
   </section>
 
+  <div class="journal-editor" id="journal-editor">
+    <div class="journal-editor-header">
+      <button id="journal-back-btn" class="journal-icon-btn">← Back</button>
+      <span id="journal-editor-location" class="journal-location-tag"></span>
+      <button id="journal-save-btn" class="journal-icon-btn journal-save-btn">Save</button>
+    </div>
+    <input type="text" id="journal-title-input" class="journal-title-input" placeholder="Title">
+    <input type="date" id="journal-date-input" class="journal-date-input">
+    <textarea id="journal-body-input" class="journal-body-input" placeholder="Write your journal entry..."></textarea>
+  </div>
+
+  <div class="people-editor" id="people-editor">
+    <div class="people-editor-header">
+        <button id="people-back-btn" class="journal-icon-btn">← Back</button>
+        <span id="people-editor-location" class="journal-location-tag"></span>
+        <button id="people-save-btn" class="journal-icon-btn journal-save-btn">Save</button>
+    </div>
+
+    <div class="people-field">
+        <label>Name</label>
+        <input type="text" id="people-name-input" placeholder="Name">
+    </div>
+    <div class="people-field">
+        <label>From</label>
+        <input type="text" id="people-from-input" placeholder="Where they're from">
+    </div>
+    <div class="people-field">
+        <label>Met where</label>
+        <input type="text" id="people-metwhere-input" placeholder="City / place you met">
+    </div>
+    <div class="people-field">
+        <label>Instagram</label>
+        <input type="text" id="people-insta-input" placeholder="@handle">
+    </div>
+    <div class="people-field">
+        <label>WhatsApp</label>
+        <input type="text" id="people-whatsapp-input" placeholder="Number">
+    </div>
+    <div class="people-field">
+        <label>Note</label>
+        <textarea id="people-note-input" placeholder="Anything you want to remember about them..."></textarea>
+    </div>
+</div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, doc, updateDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_WkzK_YNf8rBbU8vgWu0nUafh44yVRUg",
@@ -97,7 +143,7 @@
     const db = getFirestore(app);
 
     window.db = db;
-    window.firestoreFns = { collection, addDoc, getDocs };
+    window.firestoreFns = { collection, addDoc, getDocs, doc, updateDoc, serverTimestamp };
   </script>
 
   <script src="//unpkg.com/globe.gl" defer></script>

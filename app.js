@@ -47,7 +47,7 @@ Object.keys(navItems).forEach(navId => {
   });
 });
 
-const { collection, addDoc, getDocs } = window.firestoreFns;
+const { collection, addDoc, getDocs, doc, updateDoc, serverTimestamp } = window.firestoreFns;
 const db = window.db;
 
 const countryCoords = {
@@ -98,6 +98,56 @@ async function addMemory(country, city, notes, people) {
 async function getEntries() {
   const snapshot = await getDocs(collection(db, "entries"));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+// --- journal entries ---
+async function saveJournalEntry({ id, country, title, date, content }) {
+  if (id) {
+    await updateDoc(doc(db, "journalEntries", id), {
+      title,
+      date,
+      content,
+      country,
+      updatedAt: serverTimestamp()
+    });
+  } else {
+    await addDoc(collection(db, "journalEntries"), {
+      title,
+      date,
+      content,
+      country,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  }
+}
+
+// --- people entries ---
+async function savePersonEntry({ id, country, name, from, metWhere, instagram, whatsapp, note }) {
+  if (id) {
+    await updateDoc(doc(db, "people", id), {
+      name,
+      from,
+      metWhere,
+      instagram,
+      whatsapp,
+      note,
+      country,
+      updatedAt: serverTimestamp()
+    });
+  } else {
+    await addDoc(collection(db, "people"), {
+      name,
+      from,
+      metWhere,
+      instagram,
+      whatsapp,
+      note,
+      country,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  }
 }
 
 let visitedCountries = new Set();
@@ -182,7 +232,28 @@ const memoryOptionsCountry = document.getElementById('memory-options-country');
 const memoryOptionsClose = document.getElementById('memory-options-close');
 const memoryOptionBtns = document.querySelectorAll('.memory-option-btn');
 
+const journalEditor = document.getElementById('journal-editor');
+const journalBackBtn = document.getElementById('journal-back-btn');
+const journalSaveBtn = document.getElementById('journal-save-btn');
+const journalLocationTag = document.getElementById('journal-editor-location');
+const journalTitleInput = document.getElementById('journal-title-input');
+const journalDateInput = document.getElementById('journal-date-input');
+const journalBodyInput = document.getElementById('journal-body-input');
+
+const peopleEditor = document.getElementById('people-editor');
+const peopleBackBtn = document.getElementById('people-back-btn');
+const peopleSaveBtn = document.getElementById('people-save-btn');
+const peopleLocationTag = document.getElementById('people-editor-location');
+const peopleNameInput = document.getElementById('people-name-input');
+const peopleFromInput = document.getElementById('people-from-input');
+const peopleMetWhereInput = document.getElementById('people-metwhere-input');
+const peopleInstaInput = document.getElementById('people-insta-input');
+const peopleWhatsappInput = document.getElementById('people-whatsapp-input');
+const peopleNoteInput = document.getElementById('people-note-input');
+
 let activeCountry = null;
+let activeJournalEntryId = null; // null = creating a new entry
+let activePersonEntryId = null;  // null = creating a new person
 
 function openPinPopup(country) {
   activeCountry = country;
@@ -215,6 +286,64 @@ function closeMemoryOptions() {
   memorySpinBtn.style.display = 'inline-block';
 }
 
+function openJournalEditor(country, existingEntry = null) {
+  activeCountry = country;
+  journalLocationTag.textContent = country;
+
+  if (existingEntry) {
+    activeJournalEntryId = existingEntry.id;
+    journalTitleInput.value = existingEntry.title || '';
+    journalDateInput.value = existingEntry.date || new Date().toISOString().split('T')[0];
+    journalBodyInput.value = existingEntry.content || '';
+  } else {
+    activeJournalEntryId = null;
+    journalTitleInput.value = '';
+    journalDateInput.value = new Date().toISOString().split('T')[0];
+    journalBodyInput.value = '';
+  }
+
+  memoryOptions.classList.remove('active');
+  journalEditor.classList.add('active');
+  journalTitleInput.focus();
+}
+
+function closeJournalEditor() {
+  journalEditor.classList.remove('active');
+  memoryOptions.classList.add('active'); // back to the +Journal/+People/+Note/+Photos list
+}
+
+function openPeopleEditor(country, existingPerson = null) {
+  activeCountry = country;
+  peopleLocationTag.textContent = country;
+
+  if (existingPerson) {
+    activePersonEntryId = existingPerson.id;
+    peopleNameInput.value = existingPerson.name || '';
+    peopleFromInput.value = existingPerson.from || '';
+    peopleMetWhereInput.value = existingPerson.metWhere || '';
+    peopleInstaInput.value = existingPerson.instagram || '';
+    peopleWhatsappInput.value = existingPerson.whatsapp || '';
+    peopleNoteInput.value = existingPerson.note || '';
+  } else {
+    activePersonEntryId = null;
+    peopleNameInput.value = '';
+    peopleFromInput.value = '';
+    peopleMetWhereInput.value = country; // pre-fill with the country you tapped
+    peopleInstaInput.value = '';
+    peopleWhatsappInput.value = '';
+    peopleNoteInput.value = '';
+  }
+
+  memoryOptions.classList.remove('active');
+  peopleEditor.classList.add('active');
+  peopleNameInput.focus();
+}
+
+function closePeopleEditor() {
+  peopleEditor.classList.remove('active');
+  memoryOptions.classList.add('active'); // back to the options list
+}
+
 popupClose.addEventListener('click', closePinPopup);
 
 popupViewMemories.addEventListener('click', () => {
@@ -230,7 +359,76 @@ memoryOptionsClose.addEventListener('click', closeMemoryOptions);
 
 memoryOptionBtns.forEach(btn => {
   btn.addEventListener('click', () => {
-    console.log(`add ${btn.dataset.type} for`, activeCountry);
-    // each option's actual form/flow gets built next, one at a time
+    const type = btn.dataset.type;
+    if (type === 'journal') {
+      openJournalEditor(activeCountry);
+    } else if (type === 'people') {
+      openPeopleEditor(activeCountry);
+    } else {
+      console.log(`add ${type} for`, activeCountry);
+      // Note / Photos get built next, one at a time
+    }
   });
+});
+
+journalBackBtn.addEventListener('click', closeJournalEditor);
+
+journalSaveBtn.addEventListener('click', async () => {
+  const title = journalTitleInput.value.trim();
+  const date = journalDateInput.value;
+  const content = journalBodyInput.value.trim();
+
+  if (!title && !content) {
+    alert('Write something before saving.');
+    return;
+  }
+
+  journalSaveBtn.disabled = true;
+  journalSaveBtn.textContent = 'Saving...';
+
+  await saveJournalEntry({
+    id: activeJournalEntryId,
+    country: activeCountry,
+    title,
+    date,
+    content
+  });
+
+  journalSaveBtn.disabled = false;
+  journalSaveBtn.textContent = 'Save';
+  closeJournalEditor();
+});
+
+peopleBackBtn.addEventListener('click', closePeopleEditor);
+
+peopleSaveBtn.addEventListener('click', async () => {
+  const name = peopleNameInput.value.trim();
+  const from = peopleFromInput.value.trim();
+  const metWhere = peopleMetWhereInput.value.trim();
+  const instagram = peopleInstaInput.value.trim();
+  const whatsapp = peopleWhatsappInput.value.trim();
+  const note = peopleNoteInput.value.trim();
+
+  if (!name) {
+    alert('Add at least a name before saving.');
+    return;
+  }
+
+  peopleSaveBtn.disabled = true;
+  peopleSaveBtn.textContent = 'Saving...';
+
+  await savePersonEntry({
+    id: activePersonEntryId,
+    country: activeCountry,
+    name,
+    from,
+    metWhere,
+    instagram,
+    whatsapp,
+    note
+  });
+
+  peopleSaveBtn.disabled = false;
+  peopleSaveBtn.textContent = 'Save';
+  closePeopleEditor();
 });
