@@ -177,6 +177,11 @@ const popupViewMemories = document.getElementById('popup-view-memories');
 const popupAddMemory = document.getElementById('popup-add-memory');
 const memorySpinBtn = document.getElementById('memory-spin-btn');
 
+const memoryOptions = document.getElementById('memory-options');
+const memoryOptionsCountry = document.getElementById('memory-options-country');
+const memoryOptionsClose = document.getElementById('memory-options-close');
+const memoryOptionBtns = document.querySelectorAll('.memory-option-btn');
+
 let activeCountry = null;
 
 function openPinPopup(country) {
@@ -187,11 +192,26 @@ function openPinPopup(country) {
   popupViewMemories.style.display = isVisited ? 'inline-block' : 'none';
 
   memorySpinBtn.style.display = 'none';
+  memoryOptions.classList.remove('active');
   pinPopup.classList.add('active');
 }
 
 function closePinPopup() {
   pinPopup.classList.remove('active');
+  memorySpinBtn.style.display = 'inline-block';
+}
+
+function openMemoryOptions(country) {
+  activeCountry = country;
+  memoryOptionsCountry.textContent = country;
+
+  pinPopup.classList.remove('active');
+  memorySpinBtn.style.display = 'none';
+  memoryOptions.classList.add('active');
+}
+
+function closeMemoryOptions() {
+  memoryOptions.classList.remove('active');
   memorySpinBtn.style.display = 'inline-block';
 }
 
@@ -203,6 +223,14 @@ popupViewMemories.addEventListener('click', () => {
 });
 
 popupAddMemory.addEventListener('click', () => {
-  console.log('add memory for', activeCountry);
-  closePinPopup();
+  openMemoryOptions(activeCountry);
+});
+
+memoryOptionsClose.addEventListener('click', closeMemoryOptions);
+
+memoryOptionBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    console.log(`add ${btn.dataset.type} for`, activeCountry);
+    // each option's actual form/flow gets built next, one at a time
+  });
 });

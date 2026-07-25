@@ -207,3 +207,48 @@ body {
   padding: 4px !important;
   width: auto;
 }
+/* memory options list — shown after tapping Add Memory */
+
+.memory-options {
+  display: none;
+  position: relative;
+  background-color: #f4efe6;
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  width: 240px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.memory-options.active {
+  display: flex;
+}
+
+.memory-options h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.memory-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memory-option-btn {
+  padding: 10px 16px;
+  border-radius: 20px;
+  border: 1px solid #2e2a26;
+  background: none;
+  color: #2e2a26;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.memory-option-btn:active {
+  background-color: #2e2a26;
+  color: #f4efe6;
+}
