@@ -412,3 +412,79 @@ body {
   outline: none;
   border-color: #2e2a26;
 }
+
+/* note editor — sticky note vibe, casual & personal */
+
+.note-editor {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f4efe6;
+  z-index: 300;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.note-editor.active {
+  display: flex;
+}
+
+.note-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sticky-note {
+  flex: 1;
+  background-color: #f5e6a8;
+  border-radius: 4px;
+  padding: 26px 24px;
+  box-shadow: 3px 6px 14px rgba(0,0,0,0.18);
+  transform: rotate(-1deg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.sticky-note::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(2deg);
+  width: 60px;
+  height: 22px;
+  background: rgba(244, 239, 230, 0.55);
+  border: 1px solid rgba(46,42,38,0.08);
+}
+
+.sticky-note-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b5d1f;
+  margin-bottom: 14px;
+}
+
+.sticky-note-body {
+  flex: 1;
+  border: none;
+  background: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #2e2a26;
+}
+
+.sticky-note-body:focus {
+  outline: none;
+}
+
+.sticky-note-body::placeholder {
+  color: #8a7c4a;
+}

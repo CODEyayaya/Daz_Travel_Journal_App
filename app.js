@@ -47,7 +47,7 @@ Object.keys(navItems).forEach(navId => {
   });
 });
 
-const { collection, addDoc, getDocs, doc, updateDoc, serverTimestamp } = window.firestoreFns;
+const { collection, addDoc, getDocs, doc, setDoc, updateDoc, serverTimestamp } = window.firestoreFns;
 const db = window.db;
 
 const countryCoords = {
@@ -100,6 +100,28 @@ async function getEntries() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+// --- custom, readable document IDs instead of Firestore's random ones ---
+function slugify(str) {
+  return (str || 'unknown')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function generateEntryId(prefix, country) {
+  const now = new Date();
+  const stamp =
+    now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0');
+  const rand = Math.random().toString(36).slice(2, 5); // guards against same-second collisions
+  return `${prefix}-${slugify(country)}-${stamp}-${rand}`;
+}
+
 // --- journal entries ---
 async function saveJournalEntry({ id, country, title, date, content }) {
   if (id) {
@@ -110,8 +132,10 @@ async function saveJournalEntry({ id, country, title, date, content }) {
       country,
       updatedAt: serverTimestamp()
     });
+    return id;
   } else {
-    await addDoc(collection(db, "journalEntries"), {
+    const newId = generateEntryId('j', country);
+    await setDoc(doc(db, "journalEntries", newId), {
       title,
       date,
       content,
@@ -119,6 +143,7 @@ async function saveJournalEntry({ id, country, title, date, content }) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    return newId;
   }
 }
 
@@ -135,8 +160,10 @@ async function savePersonEntry({ id, country, name, from, metWhere, instagram, w
       country,
       updatedAt: serverTimestamp()
     });
+    return id;
   } else {
-    await addDoc(collection(db, "people"), {
+    const newId = generateEntryId('p', country);
+    await setDoc(doc(db, "people", newId), {
       name,
       from,
       metWhere,
@@ -147,6 +174,28 @@ async function savePersonEntry({ id, country, name, from, metWhere, instagram, w
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    return newId;
+  }
+}
+
+// --- sticky notes ---
+async function saveNoteEntry({ id, country, content }) {
+  if (id) {
+    await updateDoc(doc(db, "notes", id), {
+      content,
+      country,
+      updatedAt: serverTimestamp()
+    });
+    return id;
+  } else {
+    const newId = generateEntryId('n', country);
+    await setDoc(doc(db, "notes", newId), {
+      content,
+      country,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return newId;
   }
 }
 
@@ -251,9 +300,16 @@ const peopleInstaInput = document.getElementById('people-insta-input');
 const peopleWhatsappInput = document.getElementById('people-whatsapp-input');
 const peopleNoteInput = document.getElementById('people-note-input');
 
+const noteEditor = document.getElementById('note-editor');
+const noteBackBtn = document.getElementById('note-back-btn');
+const noteSaveBtn = document.getElementById('note-save-btn');
+const noteLocationTag = document.getElementById('note-editor-location');
+const noteBodyInput = document.getElementById('note-body-input');
+
 let activeCountry = null;
 let activeJournalEntryId = null; // null = creating a new entry
 let activePersonEntryId = null;  // null = creating a new person
+let activeNoteEntryId = null;    // null = creating a new note
 
 function openPinPopup(country) {
   activeCountry = country;
@@ -344,6 +400,28 @@ function closePeopleEditor() {
   memoryOptions.classList.add('active'); // back to the options list
 }
 
+function openNoteEditor(country, existingNote = null) {
+  activeCountry = country;
+  noteLocationTag.textContent = country;
+
+  if (existingNote) {
+    activeNoteEntryId = existingNote.id;
+    noteBodyInput.value = existingNote.content || '';
+  } else {
+    activeNoteEntryId = null;
+    noteBodyInput.value = '';
+  }
+
+  memoryOptions.classList.remove('active');
+  noteEditor.classList.add('active');
+  noteBodyInput.focus();
+}
+
+function closeNoteEditor() {
+  noteEditor.classList.remove('active');
+  memoryOptions.classList.add('active'); // back to the options list
+}
+
 popupClose.addEventListener('click', closePinPopup);
 
 popupViewMemories.addEventListener('click', () => {
@@ -364,9 +442,11 @@ memoryOptionBtns.forEach(btn => {
       openJournalEditor(activeCountry);
     } else if (type === 'people') {
       openPeopleEditor(activeCountry);
+    } else if (type === 'note') {
+      openNoteEditor(activeCountry);
     } else {
       console.log(`add ${type} for`, activeCountry);
-      // Note / Photos get built next, one at a time
+      // Photos gets built next
     }
   });
 });
@@ -386,7 +466,7 @@ journalSaveBtn.addEventListener('click', async () => {
   journalSaveBtn.disabled = true;
   journalSaveBtn.textContent = 'Saving...';
 
-  await saveJournalEntry({
+  activeJournalEntryId = await saveJournalEntry({
     id: activeJournalEntryId,
     country: activeCountry,
     title,
@@ -417,7 +497,7 @@ peopleSaveBtn.addEventListener('click', async () => {
   peopleSaveBtn.disabled = true;
   peopleSaveBtn.textContent = 'Saving...';
 
-  await savePersonEntry({
+  activePersonEntryId = await savePersonEntry({
     id: activePersonEntryId,
     country: activeCountry,
     name,
@@ -431,4 +511,28 @@ peopleSaveBtn.addEventListener('click', async () => {
   peopleSaveBtn.disabled = false;
   peopleSaveBtn.textContent = 'Save';
   closePeopleEditor();
+});
+
+noteBackBtn.addEventListener('click', closeNoteEditor);
+
+noteSaveBtn.addEventListener('click', async () => {
+  const content = noteBodyInput.value.trim();
+
+  if (!content) {
+    alert('Write something before saving.');
+    return;
+  }
+
+  noteSaveBtn.disabled = true;
+  noteSaveBtn.textContent = 'Saving...';
+
+  activeNoteEntryId = await saveNoteEntry({
+    id: activeNoteEntryId,
+    country: activeCountry,
+    content
+  });
+
+  noteSaveBtn.disabled = false;
+  noteSaveBtn.textContent = 'Save';
+  closeNoteEditor();
 });

@@ -124,10 +124,23 @@
     </div>
 </div>
 
+    <div class="note-editor" id="note-editor">
+        <div class="note-editor-header">
+            <button id="note-back-btn" class="journal-icon-btn">← Back</button>
+            <span id="note-editor-location" class="journal-location-tag"></span>
+            <button id="note-save-btn" class="journal-icon-btn journal-save-btn">Save</button>
+        </div>
+
+        <div class="sticky-note">
+            <p class="sticky-note-heading">write something for yourself~</p>
+            <textarea id="note-body-input" class="sticky-note-body" placeholder="things to remember for next time... a stall you liked, a shortcut, a warning, a promise to yourself..."></textarea>
+        </div>
+    </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs, doc, updateDoc, serverTimestamp
+      getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -143,7 +156,7 @@
     const db = getFirestore(app);
 
     window.db = db;
-    window.firestoreFns = { collection, addDoc, getDocs, doc, updateDoc, serverTimestamp };
+    window.firestoreFns = { collection, addDoc, getDocs, doc, setDoc, updateDoc, serverTimestamp };
   </script>
 
   <script src="//unpkg.com/globe.gl" defer></script>
